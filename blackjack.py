@@ -131,11 +131,11 @@ class Agent:
             self.policy[i, j, k] = 0 if self.action_values[i, j, k, 0] > self.action_values[i, j, k, 1] else 1
 
 if __name__ == "__main__":
-    NUM_EPISODES = 500000
+    NUM_EPISODES = 1000000 # TODO: Try even more
     agent = Agent()
 
     for episode in range(NUM_EPISODES):
-        if episode % 1000 == 0:
+        if episode % 10000 == 0:
             print("STARTING EPISODE:", str(episode))
         random_starting_state = State(
             np.random.randint(12, high=22),
