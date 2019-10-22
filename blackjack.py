@@ -153,4 +153,4 @@ if __name__ == "__main__":
     cbar_ax = fig.add_axes([0.9, 0.4, 0.02, 0.2])
     cbar = fig.colorbar(im2, cax=cbar_ax, ticks=[0, 1])
     cbar.ax.set_yticklabels(["Hit", "Stick"])
-    plt.savefig("final_policy_TEST.png")
+    plt.savefig("final_policy.png")
