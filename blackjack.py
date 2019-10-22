@@ -1,11 +1,8 @@
 import numpy as np
 from enum import Enum
 from copy import copy
-
-# TODO: Maybe change to the real version of blackjack
-# Book version has draws that give 0, in real blackjack the dealer win on draws.
-# In real blackjack, player win immediately on 21?
-# Dealer doesn't automatically stop on 17 when player has more than 17?
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 class Action(Enum):
     HIT = 0
@@ -96,7 +93,6 @@ class Agent:
         reward = None
 
         # Generate episode
-        #print("Starting state:", environment.state.to_string())
         history.append((copy(environment.state), starting_action))
         reward = environment.take_action(starting_action)
         while reward is None:
@@ -104,36 +100,24 @@ class Agent:
             j = environment.state.player_sum - 12
             k = environment.state.dealer_showing - 1
             action = Action(self.policy[i, j, k])
-            #print("action:", action)
             history.append((copy(environment.state), action))
             reward = environment.take_action(action)
-            #print("state:", environment.state.to_string())
-            #print("reward:", reward)
 
         # Use episode history to update state-values
-        #print("History:")
         for state, action in history:
-            #print("state: ({}), action: {}, reward: {}".format(state.to_string(), action, reward))
             i = 0 if state.usable_ace else 1
             j = state.player_sum - 12
             k = state.dealer_showing - 1
             l = action.value
             self.num_visits[i, j, k, l] += 1
             self.action_values[i, j, k, l] += (reward - self.action_values[i, j, k, l]) / self.num_visits[i, j, k, l]
-            #print("usable_ace=True, action=HIT")
-            #print(self.action_values[0,:,:,0])
-            #print("usable_ace=False, action=HIT")
-            #print(self.action_values[1,:,:,0])
-            #print("usable_ace=True, action=STICK")
-            #print(self.action_values[0,:,:,1])
-            #print("usable_ace=False, action=STICK")
-            #print(self.action_values[1,:,:,1])
             self.policy[i, j, k] = 0 if self.action_values[i, j, k, 0] > self.action_values[i, j, k, 1] else 1
 
 if __name__ == "__main__":
-    NUM_EPISODES = 1000000 # TODO: Try even more
+    NUM_EPISODES = 10000000
     agent = Agent()
 
+    # Agent learning policy
     for episode in range(NUM_EPISODES):
         if episode % 10000 == 0:
             print("STARTING EPISODE:", str(episode))
@@ -145,52 +129,28 @@ if __name__ == "__main__":
         environment = Environment(random_starting_state)
         random_starting_action = Action(np.random.randint(2))
         agent.run_episode(environment, random_starting_action)
-    np.set_printoptions(precision=1)
-    np.set_printoptions(suppress=True)
-    print("Num visited for HIT")
-    print(agent.num_visits[:,:,:,0])
-    print("Num visited for STICK")
-    print(agent.num_visits[:,:,:,1])
-    print("Action values for HIT")
-    print(agent.action_values[:,:,:,0])
-    print("Action values for STICK")
-    print(agent.action_values[:,:,:,1])
-    print("Policy")
-    print(agent.policy)
 
-"""
-class Agent:
-    state_values = np.zeros((2, 10, 10))
-    num_visits = np.zeros(np.shape(state_values))
-
-    def run_episode(self, environment):
-        history = []
-        reward = None
-
-        # Generate episode
-        while reward is None:
-            action = Action.HIT if environment.state.player_sum <= 19 else Action.STICK
-            history.append((copy(environment.state), action))
-            reward = environment.take_action(action)
-
-        # Use episode history to update state-values
-        for state, action in history:
-            i = 0 if state.usable_ace else 1
-            j = state.player_sum - 12
-            k = state.dealer_showing - 1
-            self.num_visits[i, j, k] += 1
-            self.state_values[i, j, k] += (reward - self.state_values[i, j, k]) / self.num_visits[i, j, k]
-
-if __name__ == "__main__":
-    NUM_EPISODES = 100000
-    agent = Agent()
-
-    for episode in range(NUM_EPISODES):
-        if episode % 1000 == 0:
-            print("STARTING EPISODE:", str(episode))
-        environment = Environment()
-        agent.run_episode(environment)
-    np.set_printoptions(precision=1)
-    np.set_printoptions(suppress=True)
-    print(agent.state_values)
-"""
+    # Plot final policy
+    ticks = np.arange(10)
+    xtick_labels = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    ytick_labels = range(12, 22)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.imshow(agent.policy[0], cmap=mpl.colors.ListedColormap(["red", "blue"]), origin="lower")
+    ax1.set_xticks(ticks)
+    ax1.set_xticklabels(ticks)
+    ax1.set_xlabel("Dealer showing")
+    ax1.set_yticks(ticks)
+    ax1.set_yticklabels(ytick_labels)
+    ax1.set_ylabel("Player sum")
+    ax1.set_title("Usable ace")
+    im2 = ax2.imshow(agent.policy[1], cmap=mpl.colors.ListedColormap(["red", "blue"]), origin="lower")
+    ax2.set_xticks(ticks)
+    ax2.set_xticklabels(ticks)
+    ax2.set_yticks(ticks)
+    ax2.set_yticklabels(ytick_labels)
+    ax2.set_title("No usable ace")
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.9, 0.4, 0.02, 0.2])
+    cbar = fig.colorbar(im2, cax=cbar_ax, ticks=[0, 1])
+    cbar.ax.set_yticklabels(["Hit", "Stick"])
+    plt.savefig("final_policy_TEST.png")
